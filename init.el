@@ -118,15 +118,49 @@
   ((column-number-mode . t))
   :bind
   (("C-t" . nil)
+   ("C-z" . nil)
    ("¥" . (lambda () (interactive) (insert "\\")))))
 
 (leaf dired
   :doc "directory-browsing commands"
   :tag "builtin" "files"
   :added "2022-03-20"
+  :custom
+  ((dired-recursive-copies . 'always))
+  :preface
+  (defun dired-with-query (query)
+    (interactive
+     (list (read-string "Filtering Query: " "*")))
+    (let ((dir (dired-current-directory)))
+      (kill-buffer (current-buffer))
+      (dired (concat dir query))))
+  (defun dired-toggle-mark (arg)
+    "Toggle the current (or next ARG) files."
+    ;; S.Namba Sat Aug 10 12:20:36 1996
+    (interactive "P")
+    (let ((dired-marker-char
+           (if (save-excursion (beginning-of-line)
+                               (looking-at " "))
+               dired-marker-char ?\040)))
+      (dired-mark arg)))
+  (defun find-alt-file-if-dir ()
+    (interactive)
+    (if (file-directory-p (dired-get-filename))
+        (dired-find-alternate-file)
+      (dired-view-file)))
+  (defvar my-dired-before-buffer nil)
+  (defun advice:dired-up-directory-before (&optional _)
+    (setq my-dired-before-buffer (current-buffer)))
+  (defun advice:dired-up-directory-after (&optional _)
+    (when (eq major-mode 'dired-mode)
+      (kill-buffer my-dired-before-buffer)))
+  :advice
+  (:before dired-up-directory advice:dired-up-directory-before)
+  (:after dired-up-directory advice:dired-up-directory-after)
   :bind
   ((:dired-mode-map
-    ("RET" . dired-find-alternate-file) ;;; TODO
+    ("RET" . find-alt-file-if-dir)
+    ("<mouse-2>" . find-alt-file-if-dir)
     ("q" . (lambda () (interactive) (quit-window t)))
     (" " . dired-toggle-mark)
     ("DEL" . dired-up-directory)
@@ -134,7 +168,9 @@
     ("n" . dired-previous-line)
     ("C-s" . dired-isearch-filenames)
     ("~" . (lambda () (interactive) (dired "~")))
-    ("*" . dired-with-query))))
+    ("*" . dired-with-query)))
+  :config
+  (put 'dired-find-alternate-file 'disabled nil))
 
 (leaf files
   :doc "file input and output commands for Emacs"
@@ -209,6 +245,7 @@
 
 (leaf *c-source-code
   :custom
+  (show-trailing-whitespace . t)
   (indent-tabs-mode . nil)
   (message-log-max . 100000)
   (read-buffer-completion-ignore-case . t)
@@ -223,7 +260,28 @@
   :setq-default
   (buffer-file-coding-system . 'utf-8-unix)
   :config
-  (setq default-directory "~/"))
+  (setq default-directory "~/")
+  :preface
+  (defun my-make-scratch (&optional arg)
+    (interactive)
+    (progn
+      ;; "*scratch*" を作成して buffer-list に放り込む
+      (set-buffer (get-buffer-create "*scratch*"))
+      (funcall initial-major-mode)
+      (erase-buffer)
+      (when (and initial-scratch-message (not inhibit-startup-message))
+        (insert initial-scratch-message))
+      (or arg (progn (setq arg 0)
+                     (switch-to-buffer "*scratch*")))
+      (cond ((= arg 0) (message "*scratch* is cleared up."))
+            ((= arg 1) (message "another *scratch* is created")))))
+  :hook
+  (kill-buffer-query-functions . (lambda () (if (equal "*scratch*" (buffer-name))
+                                                (progn (my-make-scratch 0) nil)
+                                              t)))
+  (after-save-hook . (lambda () (unless (member "*scratch*"
+                                                (mapcar (function buffer-name) (buffer-list)))
+                                  (my-make-scratch 1)))))
 
 (leaf minions
   :doc "A minor-mode menu for the mode line"
@@ -236,6 +294,28 @@
   :global-minor-mode t
   :custom
   ((minions-mode-line-lighter . "[+]")))
+
+(leaf mule-cmds
+  :doc "commands for multilingual environment"
+  :tag "builtin" "i18n" "mule"
+  :added "2022-03-24"
+  :config
+  (set-language-environment  'utf-8)
+  (prefer-coding-system 'utf-8)
+  (set-default-coding-systems 'utf-8-unix))
+
+(leaf skeleton
+  :doc "Lisp language extension for writing statement skeletons"
+  :tag "builtin"
+  :added "2022-03-24"
+  :custom
+  ((skeleton-pair-on-word . t)
+   (skeleton-pair . t))
+  :bind
+  ("(" . skeleton-pair-insert-maybe)
+  ("{" . skeleton-pair-insert-maybe)
+  ("[" . skeleton-pair-insert-maybe)
+  ("\"" . skeleton-pair-insert-maybe))
 
 (provide 'init)
 
