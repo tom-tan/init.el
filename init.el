@@ -199,7 +199,7 @@
 
 (leaf *font
   :config
-  (set-face-attribute 'default nil :family "HackGen Console" :height 100)
+  (set-face-attribute 'default nil :family "HackGen Console" :height 140)
   (add-to-list 'default-frame-alist '(width . 100)))
 
 (leaf executable
