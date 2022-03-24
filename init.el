@@ -258,9 +258,8 @@
                         ("" invocation-name "@" (:eval (downcase system-name)) ": "
                          (:eval (if (buffer-file-name) "%f" "%b")))))
   :setq-default
-  (buffer-file-coding-system . 'utf-8-unix)
-  :config
-  (setq default-directory "~/")
+  ((buffer-file-coding-system . 'utf-8-unix))
+  ;; :config
   :preface
   (defun my-make-scratch (&optional arg)
     (interactive)
@@ -316,6 +315,8 @@
   ("{" . skeleton-pair-insert-maybe)
   ("[" . skeleton-pair-insert-maybe)
   ("\"" . skeleton-pair-insert-maybe))
+
+(setq default-directory "~/")
 
 (provide 'init)
 
