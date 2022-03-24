@@ -117,7 +117,8 @@
   :custom
   ((column-number-mode . t))
   :bind
-  (("C-t" . nil)))
+  (("C-t" . nil)
+   ("¥" . (lambda () (interactive) (insert "\\")))))
 
 (leaf dired
   :doc "directory-browsing commands"
